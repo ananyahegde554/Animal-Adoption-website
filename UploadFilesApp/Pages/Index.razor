@@ -1,0 +1,101 @@
+﻿@page "/upload"
+@using UploadFilesApp.Data;
+@inject IConfiguration config
+
+<PageTitle>Upload Pet Details</PageTitle>
+
+<h1>Enter the pet information</h1>
+
+<EditForm Model="newPet" OnValidSubmit="SubmitForm">
+    <div>
+        <label for="name">Name:</label>
+        <InputText id="name" class="form-control" @bind-Value="newPet.Name" />
+    </div>
+    <div>
+        <label for="type">Type:</label>
+        <InputText id="type" class="form-control" @bind-Value="newPet.Type" />
+    </div>
+    <div>
+        <label for="age">Age:</label>
+        <InputText id="age" class="form-control" @bind-Value="newPet.Age" />
+    </div>
+    <div>
+        <label for="contact">Owners Contact:</label>
+        <InputText id="contact" class="form-control" @bind-Value="newPet.OwnersContact" />
+    </div>
+    <div>
+        <label for="profilePicture">Pet's Image:</label>
+        <InputFile OnChange="@LoadFiles" class="form-control" accept=".png,.jpg,.jpeg" />
+    </div>
+    <button class="btn btn-primary mt-3" type="submit">Create Pet Entry</button>
+</EditForm>
+
+@if (errors.Count > 0)
+{
+    <h2>Errors</h2>
+    <ul class="text-danger">
+        @foreach (var error in errors)
+        {
+            <li>@error</li>
+        }
+    </ul>
+}
+
+@code {
+    private long maxFileSize = 1024 * 1024 * 3; // represents 3MB
+    private int maxAllowedFiles = 3;
+    private List<string> errors = new();
+    private PetModel newPet = new();
+    private IBrowserFile? file;
+
+    private async Task SubmitForm()
+    {
+        try
+        {
+            string relativePath = await CaptureFile();
+            newPet.FileName = relativePath;
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Error: {ex.Message}");
+        }
+    }
+
+    private void LoadFiles(InputFileChangeEventArgs e)
+    {
+        file = e.File;
+    }
+
+    private async Task<string> CaptureFile()
+    {
+        if (file is null)
+        {
+            return "";
+        }
+
+        try
+        {
+            string codename = $"{newPet.Name}_{newPet.Age}_{newPet.Type}_{newPet.OwnersContact}";
+
+            string newFileName = Path.ChangeExtension(
+                codename, 
+                Path.GetExtension(file.Name));
+
+            string path = Path.Combine(
+                config.GetValue<string>("FileStorage")!,
+                newFileName);
+
+            string relativePath = newFileName;
+
+            await using FileStream fs = new(path, FileMode.Create);
+            await file.OpenReadStream(maxFileSize).CopyToAsync(fs);
+
+            return relativePath;
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"File: {file.Name} Error: {ex.Message}");
+            throw;
+        }
+    }
+}

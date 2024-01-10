@@ -1,0 +1,53 @@
+﻿@page "/imagegallery"
+@inject IConfiguration config
+
+<h3>Pet Gallery</h3>
+
+<div class="image-container">
+    <p></p>
+    <p></p>
+    @foreach (var imageFileName in imageFileNames)
+    {
+        string srcPath = Path.Combine("images", imageFileName);
+        var petInfo = imageFileName.Split('_');
+        var petName = petInfo[0];
+        var petAge = petInfo[1];
+        var petType = petInfo[2];
+        var petContact = petInfo[3];
+
+        <div class="card">
+            <img class="card-img" src="@srcPath" alt="header" />
+            <div class="card-info">
+                <h1 class="card-title">Name : @petName</h1>
+                <div class="card-icon">Age : @petAge</div>
+                <p class="card-author">Type : @petType</p>
+                <p class="card-author">Contact : @petContact</p>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<string> imageFileNames;
+
+    protected override void OnInitialized()
+    {
+        LoadImages();
+    }
+
+    private void LoadImages()
+    {
+        string uploadsPath = "wwwroot/images";
+        imageFileNames = Directory.GetFiles(uploadsPath)
+                                   .Where(file => IsImageFile(file))
+                                   .Select(file => Path.GetFileName(file))
+                                   .ToList();
+    }
+
+    private bool IsImageFile(string fileName)
+    {
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+        var extension = Path.GetExtension(fileName).ToLower();
+        return allowedExtensions.Contains(extension);
+    }
+}
